@@ -1,4 +1,4 @@
-# Speech-to-Text (STT) Service
+# Parakeet STT ZMQ Pipe
 
 A professional, production-ready Speech-to-Text service using NVIDIA NeMo's Parakeet TDT 0.6B v2 model with ZMQ messaging for pipeline integration.
 

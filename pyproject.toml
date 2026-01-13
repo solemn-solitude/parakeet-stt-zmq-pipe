@@ -1,7 +1,7 @@
 [project]
-name = "stt"
+name = "parakeet-stt-zmq-pipe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Production-ready STT service using NeMo Parakeet with ZMQ messaging for pipeline integration"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

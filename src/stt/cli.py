@@ -110,7 +110,7 @@ def start(
 @cli.command()
 def version():
     """Show version information."""
-    click.echo("STT Service v0.1.0")
+    click.echo("Parakeet STT ZMQ Pipe v0.1.0")
     click.echo("Using NeMo Parakeet TDT 0.6B v2 model")
 
 
