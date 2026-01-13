@@ -1,0 +1,14 @@
+[project]
+name = "stt"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.1",
+    "msgpack>=1.1.2",
+    "nemo-toolkit[asr]>=2.6.1",
+    "pyzmq>=27.1.0",
+    "soundfile>=0.13.1",
+    "torch>=2.9.1",
+]
