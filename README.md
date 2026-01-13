@@ -75,15 +75,33 @@ Messages are msgpack-encoded.
 - Audio: 16kHz, mono, WAV or FLAC
 - Stereo audio requires `--convert-to-mono` flag
 
-## Example Client
+## Client Library (Downstream Services)
+
+For LLM/RAG services consuming transcriptions:
+
+```python
+from src.stt.client import STTClient
+
+def handle_transcription(response):
+    if response.status == "success":
+        print(f"Transcription: {response.text}")
+        # Process with LLM, do RAG lookup, etc.
+    else:
+        print(f"Error: {response.error_details}")
+
+# Simple callback-based approach
+with STTClient(bind_address="tcp://*:5556") as client:
+    client.listen(callback=handle_transcription)
+```
+
+See `example_consumer.py` for complete examples.
+
+## Sending Audio (Upstream Services)
 
 ```python
 import zmq
 from src.stt.messaging.schemas import AudioRequest
-from src.stt.messaging.serialization import (
-    serialize_audio_request,
-    deserialize_transcription_response,
-)
+from src.stt.messaging.serialization import serialize_audio_request
 
 context = zmq.Context()
 socket = context.socket(zmq.DEALER)
@@ -100,10 +118,9 @@ request = AudioRequest(
 )
 
 socket.send(serialize_audio_request(request))
-response = deserialize_transcription_response(socket.recv())
-
-print(response.text)
 ```
+
+See `test_client.py` for a complete example.
 
 ```
 
