@@ -1,6 +1,5 @@
 """Serialization utilities for msgpack encoding/decoding of message schemas."""
 import msgpack
-from typing import Union
 
 from .schemas import AudioRequest, TranscriptionResponse
 

@@ -1,7 +1,6 @@
 """Main STT service orchestration and event loop."""
 import logging
 import signal
-import sys
 from typing import Optional
 
 from .config import STTConfig
@@ -28,7 +27,6 @@ class STTService:
         self.config = config
         self.running = False
         
-        # Initialize components
         self.model_manager = ModelManager(
             model_name=config.model_name,
             timeout_minutes=config.model_timeout_minutes
@@ -56,13 +54,8 @@ class STTService:
         """Set up the service components."""
         logger.info("Setting up STT service...")
         
-        # Set up ZMQ sockets
         self.zmq_handler.setup()
-        
-        # Start model monitoring
         self.model_manager.start_monitoring()
-        
-        # Start log flusher
         self.log_flusher.start()
         
         logger.info("STT service setup complete")
@@ -71,7 +64,6 @@ class STTService:
         """Run the main service loop."""
         self.setup()
         
-        # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
         
@@ -91,85 +83,54 @@ class STTService:
         temp_file: Optional[any] = None
         
         try:
-            # Receive request with timeout
             result = self.zmq_handler.receive_request(timeout_ms=100)
             
             if result is None:
-                # No message available, continue loop
                 return
             
             identity, request = result
             logger.info(f"Processing request {request.request_id}")
             
-            # Validate request
             is_valid, error_msg = request.validate()
             if not is_valid:
-                logger.warning(f"Invalid request {request.request_id}: {error_msg}")
-                response = TranscriptionResponse.create_error(
-                    request_id=request.request_id,
-                    error_message=f"Request validation failed: {error_msg}"
-                )
-                self.zmq_handler.send_response(response)
+                self._send_error_response(request, "Request validation failed", error_msg)
                 return
             
-            # Process audio
             is_valid, error_msg, temp_file = self.audio_processor.validate_and_process(
                 audio_data=request.audio_data,
                 audio_format=request.audio_format
             )
             
             if not is_valid:
-                logger.warning(f"Audio validation failed for {request.request_id}: {error_msg}")
-                response = TranscriptionResponse.create_error(
-                    request_id=request.request_id,
-                    error_message=f"Audio validation failed: {error_msg}"
-                )
-                self.zmq_handler.send_response(response)
+                self._send_error_response(request, "Audio validation failed", error_msg)
                 return
             
-            # Transcribe audio
-            try:
-                text, processing_time_ms, confidence = self.transcription_engine.transcribe(
-                    audio_file_path=temp_file
-                )
-                
-                # Create success response
-                response = TranscriptionResponse.create_success(
-                    request_id=request.request_id,
-                    text=text,
-                    processing_time_ms=processing_time_ms,
-                    confidence=confidence
-                )
-                
-                logger.info(
-                    f"Request {request.request_id} completed successfully in "
-                    f"{processing_time_ms:.2f}ms"
-                )
-                
-            except Exception as e:
-                logger.error(
-                    f"Transcription failed for request {request.request_id}: {e}",
-                    exc_info=True
-                )
-                response = TranscriptionResponse.create_error(
-                    request_id=request.request_id,
-                    error_message=f"Transcription failed: {str(e)}"
-                )
-            
-            # Send response
-            self.zmq_handler.send_response(response)
+            self.zmq_handler.send_response(self._try_transcribe_audio(temp_file, request))
             
         except ValueError as e:
-            # Deserialization error
             logger.error(f"Failed to deserialize request: {e}")
             
         except Exception as e:
             logger.error(f"Unexpected error processing request: {e}", exc_info=True)
             
         finally:
-            # Clean up temporary file
             if temp_file is not None:
                 AudioProcessor.cleanup_temp_file(temp_file)
+
+    def _send_error_response(self, request, error_type: str, error_detail: str) -> None:
+        """Send an error response to the client.
+        
+        Args:
+            request: The transcription request
+            error_type: Type/category of the error
+            error_detail: Detailed error message
+        """
+        logger.warning(f"{error_type} for request {request.request_id}: {error_detail}")
+        response = TranscriptionResponse.create_error(
+            request_id=request.request_id,
+            error_message=f"{error_type}: {error_detail}"
+        )
+        self.zmq_handler.send_response(response)
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals.
@@ -186,16 +147,49 @@ class STTService:
         logger.info("Cleaning up STT service...")
         
         try:
-            # Stop model monitoring
             self.model_manager.stop_monitoring()
-            
-            # Stop log flusher
             self.log_flusher.stop()
-            
-            # Clean up ZMQ sockets
             self.zmq_handler.cleanup()
             
         except Exception as e:
             logger.error(f"Error during cleanup: {e}", exc_info=True)
         
         logger.info("STT service cleanup complete")
+
+
+    def _try_transcribe_audio(self, temp_file, request) -> TranscriptionResponse:
+        """Attempt to transcribe audio and create appropriate response.
+        
+        Args:
+            temp_file: Path to temporary audio file
+            request: The transcription request
+            
+        Returns:
+            TranscriptionResponse with success or error details
+        """
+        try:
+            text, processing_time_ms, confidence = self.transcription_engine.transcribe(
+                audio_file_path=temp_file
+            )
+            
+            logger.info(
+                f"Request {request.request_id} completed successfully in "
+                f"{processing_time_ms:.2f}ms"
+            )
+            
+            return TranscriptionResponse.create_success(
+                request_id=request.request_id,
+                text=text,
+                processing_time_ms=processing_time_ms,
+                confidence=confidence
+            )
+            
+        except Exception as e:
+            logger.error(
+                f"Transcription failed for request {request.request_id}: {e}",
+                exc_info=True
+            )
+            return TranscriptionResponse.create_error(
+                request_id=request.request_id,
+                error_message=f"Transcription failed: {str(e)}"
+            )

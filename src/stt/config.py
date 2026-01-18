@@ -1,4 +1,5 @@
 """Configuration dataclasses for the STT service."""
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -9,7 +10,7 @@ class STTConfig:
     """Main configuration for the STT service."""
     
     # ZMQ addresses
-    input_address: str = "tcp://*:5555"
+    input_address: str = field(default_factory=lambda: os.getenv("STT_INPUT_ADDRESS", "tcp://localhost:20499"))
     output_address: str = "tcp://localhost:5556"
     
     # Model configuration

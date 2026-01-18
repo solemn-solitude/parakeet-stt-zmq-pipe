@@ -1,5 +1,4 @@
 """Audio processing and validation utilities."""
-import io
 import logging
 import tempfile
 from pathlib import Path
@@ -48,72 +47,21 @@ class AudioProcessor:
             - temp_file_path: Path to temporary audio file (caller should clean up)
         """
         try:
-            # Write audio data to temporary file for processing
-            temp_file = tempfile.NamedTemporaryFile(
-                suffix=f".{audio_format}",
-                delete=False
-            )
-            temp_path = Path(temp_file.name)
+            # Write audio data to temporary file
+            temp_path = self._write_temp_file(audio_data, audio_format)
             
             try:
-                temp_file.write(audio_data)
-                temp_file.close()
-                
-                # Read audio file to validate
-                data, sample_rate = sf.read(str(temp_path))
-                
-                logger.debug(
-                    f"Audio loaded: shape={data.shape}, sample_rate={sample_rate}Hz, "
-                    f"format={audio_format}"
-                )
+                # Load and validate audio
+                data, sample_rate = self._load_and_validate_audio(temp_path, audio_format)
                 
                 # Validate sample rate
-                if sample_rate != self.expected_sample_rate:
-                    error_msg = (
-                        f"Invalid sample rate: expected {self.expected_sample_rate}Hz, "
-                        f"got {sample_rate}Hz"
-                    )
-                    logger.warning(error_msg)
-                    temp_path.unlink()  # Clean up on error
+                is_valid, error_msg = self._validate_sample_rate(sample_rate)
+                if not is_valid:
+                    temp_path.unlink()
                     return False, error_msg, None
                 
-                # Check if audio is stereo
-                is_stereo = len(data.shape) == 2 and data.shape[1] == 2
-                
-                if is_stereo:
-                    if not self.convert_to_mono:
-                        error_msg = (
-                            "Audio is stereo but mono conversion is disabled. "
-                            "Expected mono audio (1 channel)."
-                        )
-                        logger.warning(error_msg)
-                        temp_path.unlink()  # Clean up on error
-                        return False, error_msg, None
-                    
-                    # Convert stereo to mono
-                    logger.info("Converting stereo audio to mono")
-                    mono_data = np.mean(data, axis=1)
-                    
-                    # Create new temp file for mono audio
-                    mono_temp = tempfile.NamedTemporaryFile(
-                        suffix=f"_mono.{audio_format}",
-                        delete=False
-                    )
-                    mono_path = Path(mono_temp.name)
-                    mono_temp.close()
-                    
-                    # Write mono audio
-                    sf.write(str(mono_path), mono_data, sample_rate)
-                    
-                    # Clean up original stereo file
-                    temp_path.unlink()
-                    
-                    logger.debug(f"Mono conversion complete: {mono_path}")
-                    return True, None, mono_path
-                
-                # Audio is already mono
-                logger.debug("Audio is mono, no conversion needed")
-                return True, None, temp_path
+                # Handle stereo audio if needed
+                return self._handle_stereo_audio(data, sample_rate, temp_path, audio_format)
                 
             except Exception as e:
                 # Clean up temp file on error
@@ -129,6 +77,140 @@ class AudioProcessor:
             error_msg = f"Unexpected error processing audio: {e}"
             logger.error(error_msg, exc_info=True)
             return False, error_msg, None
+    
+    def _write_temp_file(self, audio_data: bytes, audio_format: str) -> Path:
+        """Write audio data to a temporary file.
+        
+        Args:
+            audio_data: Raw audio bytes
+            audio_format: Audio format extension
+            
+        Returns:
+            Path to the temporary file
+        """
+        temp_file = tempfile.NamedTemporaryFile(
+            suffix=f".{audio_format}",
+            delete=False
+        )
+        temp_path = Path(temp_file.name)
+        temp_file.write(audio_data)
+        temp_file.close()
+        return temp_path
+    
+    def _load_and_validate_audio(
+        self, 
+        temp_path: Path, 
+        audio_format: str
+    ) -> Tuple[np.ndarray, int]:
+        """Load audio file and return data and sample rate.
+        
+        Args:
+            temp_path: Path to the temporary audio file
+            audio_format: Audio format for logging
+            
+        Returns:
+            Tuple of (audio_data, sample_rate)
+        """
+        data, sample_rate = sf.read(str(temp_path))
+        
+        logger.debug(
+            f"Audio loaded: shape={data.shape}, sample_rate={sample_rate}Hz, "
+            f"format={audio_format}"
+        )
+        
+        return data, sample_rate
+    
+    def _validate_sample_rate(self, sample_rate: int) -> Tuple[bool, Optional[str]]:
+        """Validate that the sample rate matches expected value.
+        
+        Args:
+            sample_rate: The actual sample rate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if sample_rate != self.expected_sample_rate:
+            error_msg = (
+                f"Invalid sample rate: expected {self.expected_sample_rate}Hz, "
+                f"got {sample_rate}Hz"
+            )
+            logger.warning(error_msg)
+            return False, error_msg
+        
+        return True, None
+    
+    def _handle_stereo_audio(
+        self, 
+        data: np.ndarray, 
+        sample_rate: int,
+        temp_path: Path,
+        audio_format: str
+    ) -> Tuple[bool, Optional[str], Optional[Path]]:
+        """Handle stereo audio - either reject or convert to mono.
+        
+        Args:
+            data: Audio data array
+            sample_rate: Sample rate in Hz
+            temp_path: Path to the original temporary file
+            audio_format: Audio format extension
+            
+        Returns:
+            Tuple of (is_valid, error_message, temp_file_path)
+        """
+        is_stereo = len(data.shape) == 2 and data.shape[1] == 2
+        
+        if not is_stereo:
+            # Audio is already mono
+            logger.debug("Audio is mono, no conversion needed")
+            return True, None, temp_path
+        
+        if not self.convert_to_mono:
+            error_msg = (
+                "Audio is stereo but mono conversion is disabled. "
+                "Expected mono audio (1 channel)."
+            )
+            logger.warning(error_msg)
+            temp_path.unlink()
+            return False, error_msg, None
+        
+        # Convert stereo to mono
+        mono_path = self._convert_to_mono(data, sample_rate, audio_format)
+        temp_path.unlink()  # Clean up original stereo file
+        
+        return True, None, mono_path
+    
+    def _convert_to_mono(
+        self, 
+        stereo_data: np.ndarray, 
+        sample_rate: int,
+        audio_format: str
+    ) -> Path:
+        """Convert stereo audio to mono and write to new temp file.
+        
+        Args:
+            stereo_data: Stereo audio data array
+            sample_rate: Sample rate in Hz
+            audio_format: Audio format extension
+            
+        Returns:
+            Path to the mono audio temporary file
+        """
+        logger.info("Converting stereo audio to mono")
+        mono_data = np.mean(stereo_data, axis=1)
+        
+        # Create new temp file for mono audio
+        mono_temp = tempfile.NamedTemporaryFile(
+            suffix=f"_mono.{audio_format}",
+            delete=False
+        )
+        mono_path = Path(mono_temp.name)
+        mono_temp.close()
+        
+        # Write mono audio
+        sf.write(str(mono_path), mono_data, sample_rate)
+        
+        logger.debug(f"Mono conversion complete: {mono_path}")
+        return mono_path
     
     @staticmethod
     def cleanup_temp_file(file_path: Optional[Path]) -> None:

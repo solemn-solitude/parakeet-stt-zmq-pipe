@@ -24,7 +24,11 @@ uv sync
 # Start with defaults
 uv run python main.py start
 
-# Custom config
+# Using environment variable
+export STT_INPUT_ADDRESS="tcp://*:5555"
+uv run python main.py start
+
+# Custom config (CLI overrides env var)
 uv run python main.py start \
   --input-address tcp://*:5555 \
   --output-address tcp://localhost:5556 \
@@ -37,12 +41,18 @@ uv run python main.py start \
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--input-address` | `tcp://*:5555` | ROUTER bind address |
+| `--input-address` | `tcp://localhost:20499` | ROUTER bind address (overrides `STT_INPUT_ADDRESS` env var) |
 | `--output-address` | `tcp://localhost:5556` | DEALER connect address |
 | `--timeout` | `10` | Model idle timeout (minutes) |
 | `--convert-to-mono` | `false` | Enable stereo→mono conversion |
 | `--log-file` | `stt.log` | Log file path |
 | `--log-level` | `WARNING` | DEBUG\|INFO\|WARNING\|ERROR\|CRITICAL |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `STT_INPUT_ADDRESS` | ROUTER bind address (default: `tcp://localhost:20499`, overridden by `--input-address` CLI flag) |
 
 ## Message Protocol
 
