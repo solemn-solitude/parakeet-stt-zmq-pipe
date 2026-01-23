@@ -23,9 +23,8 @@ def cli():
 )
 @click.option(
     "--output-address",
-    default="tcp://localhost:5556",
-    help="ZMQ DEALER output address (default: tcp://localhost:5556)",
-    show_default=True,
+    default=None,
+    help="ZMQ DEALER output address (overrides LLM_RAG_PIPE_INPUT_ADDRESS env var, default: tcp://localhost:25000)",
 )
 @click.option(
     "--timeout",
@@ -66,18 +65,20 @@ def start(
 ):
     """Start the STT service."""
 
-    # Create configuration with conditional input_address override
+    # Create configuration with conditional overrides
     config_kwargs = {
-        "output_address": output_address,
         "model_timeout_minutes": timeout,
         "convert_to_mono": convert_to_mono,
         "log_file": Path(log_file),
         "log_level": log_level.upper(),
     }
     
-    # Only override input_address if explicitly provided via CLI
+    # Only override addresses if explicitly provided via CLI
     if input_address is not None:
         config_kwargs["input_address"] = input_address
+    
+    if output_address is not None:
+        config_kwargs["output_address"] = output_address
     
     config = STTConfig(**config_kwargs)
 

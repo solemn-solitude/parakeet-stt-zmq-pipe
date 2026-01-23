@@ -11,7 +11,7 @@ class STTConfig:
     
     # ZMQ addresses
     input_address: str = field(default_factory=lambda: os.getenv("STT_INPUT_ADDRESS", "tcp://localhost:20499"))
-    output_address: str = "tcp://localhost:5556"
+    output_address: str = field(default_factory=lambda: os.getenv("LLM_RAG_PIPE_INPUT_ADDRESS", "tcp://localhost:25000"))
     
     # Model configuration
     model_name: str = "nvidia/parakeet-tdt-0.6b-v2"

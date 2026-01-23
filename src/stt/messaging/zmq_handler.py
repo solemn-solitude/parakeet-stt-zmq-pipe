@@ -71,18 +71,25 @@ class ZMQHandler:
         
         try:
             # ROUTER receives: [identity, empty, data]
+            print("Waiting...")
             message_parts = self.input_socket.recv_multipart()
+            #print(f"Message parts: {message_parts}")
+            print("received...")
             
             if len(message_parts) < 2:
+                print("Err, wrong message format length, expected two parts")
                 logger.error(f"Invalid message format: expected at least 2 parts, got {len(message_parts)}")
                 return None
             
             identity = message_parts[0]
+            print(f"identitiy: {identity}")
             # message_parts[1] is the delimiter (empty frame)
             request_data = message_parts[-1] if len(message_parts) > 1 else message_parts[0]
+            print("request data fetched")
             
             # Deserialize the request
             request = deserialize_audio_request(request_data)
+            print("deserialized")
             
             logger.debug(f"Received request {request.request_id} from client {identity.hex()}")
             return identity, request
@@ -111,6 +118,7 @@ class ZMQHandler:
             self.output_socket.send(response_data)
             
             logger.debug(f"Sent response for request {response.request_id} (status={response.status})")
+            logger.debug(f"Transcribed text: {response.text}")
             
         except Exception as e:
             logger.error(f"Failed to send response for request {response.request_id}: {e}", exc_info=True)

@@ -113,9 +113,17 @@ class AudioProcessor:
         """
         data, sample_rate = sf.read(str(temp_path))
         
-        logger.debug(
-            f"Audio loaded: shape={data.shape}, sample_rate={sample_rate}Hz, "
-            f"format={audio_format}"
+        duration_seconds = len(data) / sample_rate if sample_rate > 0 else 0
+        num_channels = data.shape[1] if len(data.shape) > 1 else 1
+        
+        logger.info(
+            f"AUDIO FILE ANALYSIS - Path: {temp_path}, "
+            f"Sample Rate: {sample_rate}Hz, "
+            f"Channels: {num_channels}, "
+            f"Samples: {len(data)}, "
+            f"Duration: {duration_seconds:.2f}s, "
+            f"Shape: {data.shape}, "
+            f"Format: {audio_format}"
         )
         
         return data, sample_rate

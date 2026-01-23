@@ -114,8 +114,10 @@ class STTService:
             logger.error(f"Unexpected error processing request: {e}", exc_info=True)
             
         finally:
+            # TESTING: Persist temp files for debugging audio issues
             if temp_file is not None:
-                AudioProcessor.cleanup_temp_file(temp_file)
+                logger.info(f"TESTING: Audio file persisted at: {temp_file}")
+                # AudioProcessor.cleanup_temp_file(temp_file)
 
     def _send_error_response(self, request, error_type: str, error_detail: str) -> None:
         """Send an error response to the client.
