@@ -1,7 +1,7 @@
 """Serialization utilities for msgpack encoding/decoding of message schemas."""
 import msgpack
 
-from .schemas import AudioRequest, TranscriptionResponse
+from src.stt.messaging.schemas import AudioRequest, TranscriptionResponse
 
 
 def serialize_audio_request(request: AudioRequest) -> bytes:

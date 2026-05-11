@@ -1,18 +1,18 @@
 """Command-line interface for the STT service."""
-
-import click
 from pathlib import Path
 from textwrap import dedent
 
-from .config import STTConfig
-from .service import STTService
-from .utils.logging import setup_logging
-from .dataset.generator import DatasetGenerator
+import click
+
+from src.stt.config import STTConfig
+from src.stt.dataset.generator import DatasetGenerator
+from src.stt.service import STTService
+from src.stt.utils.logging import setup_logging
+
 
 @click.group()
 def cli():
     """Speech-to-Text (STT) service using NeMo Parakeet model."""
-    pass
 
 
 @cli.command()
@@ -62,27 +62,23 @@ def start(
     convert_to_mono: bool,
     log_file: str,
     log_level: str,
-):
+) -> None:
     """Start the STT service."""
-
-    # Create configuration with conditional overrides
     config_kwargs = {
         "model_timeout_minutes": timeout,
         "convert_to_mono": convert_to_mono,
         "log_file": Path(log_file),
         "log_level": log_level.upper(),
     }
-    
-    # Only override addresses if explicitly provided via CLI
+
     if input_address is not None:
         config_kwargs["input_address"] = input_address
-    
+
     if output_address is not None:
         config_kwargs["output_address"] = output_address
-    
+
     config = STTConfig(**config_kwargs)
 
-    # Set up logging
     setup_logging(
         log_file=config.log_file,
         log_level=config.log_level,
@@ -90,10 +86,8 @@ def start(
         log_backup_days=config.log_backup_days,
     )
 
-    # Print startup information
     _print_stt_service_configuration(config)
 
-    # Create and run service
     service = STTService(config)
 
     try:
@@ -106,7 +100,7 @@ def start(
 
 
 @cli.command()
-def version():
+def version() -> None:
     """Show version information."""
     click.echo("Parakeet STT ZMQ Pipe v0.1.0")
     click.echo("Using NeMo Parakeet TDT 0.6B v2 model")
@@ -139,7 +133,7 @@ def generate_soprano_dataset(
     voice_actor_identifier: str,
     log_file: str,
     log_level: str,
-):
+) -> None:
     """Generate TTS training dataset from .wav files.
 
     This command transcribes all .wav files in DIRECTORY and creates a metadata
@@ -154,20 +148,16 @@ def generate_soprano_dataset(
     - {VOICE_ACTOR_IDENTIFIER}.metadata.txt: Metadata file in format "file_id|transcription"
     - {VOICE_ACTOR_IDENTIFIER}.metadata.db: SQLite database tracking transcription state
     """
-
-    # Set up logging
     setup_logging(
         log_file=Path(log_file),
         log_level=log_level.upper(),
     )
 
-    # Print startup information
     _print_soprano_dataset_generation_detail(
         directory, voice_actor_identifier, log_file, log_level
     )
 
     try:
-        # Create generator and run
         generator = DatasetGenerator(directory, voice_actor_identifier)
         generator.generate()
     except KeyboardInterrupt:
@@ -178,8 +168,11 @@ def generate_soprano_dataset(
 
 
 def _print_soprano_dataset_generation_detail(
-    directory, voice_actor_identifier, log_file, log_level
-):
+    directory: Path,
+    voice_actor_identifier: str,
+    log_file: str,
+    log_level: str,
+) -> None:
     click.echo(
         dedent(f"""
         ============================================================
@@ -194,7 +187,7 @@ def _print_soprano_dataset_generation_detail(
     )
 
 
-def _print_stt_service_configuration(config):
+def _print_stt_service_configuration(config: STTConfig) -> None:
     click.echo(
         dedent(f"""
         ============================================================

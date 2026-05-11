@@ -1,21 +1,15 @@
 """SQLite connection utilities with context manager support."""
 import sqlite3
 from pathlib import Path
-from typing import Optional
 
 
 class SQLiteConnection:
     """SQLite database connection with context manager support."""
-    
+
     def __init__(self, db_path: Path):
-        """Initialize SQLite connection.
-        
-        Args:
-            db_path: Path to the SQLite database file
-        """
         self.db_path = db_path
-        self.connection: Optional[sqlite3.Connection] = None
-        self.cursor: Optional[sqlite3.Cursor] = None
+        self.connection: sqlite3.Connection | None = None
+        self.cursor: sqlite3.Cursor | None = None
     
     def __enter__(self):
         """Enter context manager - establish connection."""
