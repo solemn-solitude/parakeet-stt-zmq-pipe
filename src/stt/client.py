@@ -4,8 +4,8 @@ from collections.abc import Callable
 
 import zmq
 
-from src.stt.messaging.schemas import TranscriptionResponse
-from src.stt.messaging.serialization import deserialize_transcription_response
+from stt.messaging.schemas import TranscriptionResponse
+from stt.messaging.serialization import deserialize_transcription_response
 
 
 logger = logging.getLogger(__name__)

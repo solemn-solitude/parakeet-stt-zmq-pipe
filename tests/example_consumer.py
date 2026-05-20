@@ -1,6 +1,6 @@
 """Example of using STTClient in a downstream service (e.g., LLM/RAG)."""
 import logging
-from src.stt.client import STTClient
+from stt.client import STTClient
 
 # Set up logging
 logging.basicConfig(

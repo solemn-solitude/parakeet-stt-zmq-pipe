@@ -3,8 +3,8 @@ import zmq
 import time
 from pathlib import Path
 
-from src.stt.messaging.schemas import AudioRequest, TranscriptionResponse
-from src.stt.messaging.serialization import (
+from stt.messaging.schemas import AudioRequest, TranscriptionResponse
+from stt.messaging.serialization import (
     serialize_audio_request,
     deserialize_transcription_response,
 )

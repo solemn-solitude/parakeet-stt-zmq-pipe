@@ -3,8 +3,8 @@ import logging
 
 import zmq
 
-from src.stt.messaging.schemas import AudioRequest, TranscriptionResponse
-from src.stt.messaging.serialization import deserialize_audio_request, serialize_transcription_response
+from stt.messaging.schemas import AudioRequest, TranscriptionResponse
+from stt.messaging.serialization import deserialize_audio_request, serialize_transcription_response
 
 
 logger = logging.getLogger(__name__)

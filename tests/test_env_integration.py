@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Integration test demonstrating the environment variable configuration."""
 import os
-from src.stt.config import STTConfig
+from stt.config import STTConfig
 
 
 def main():

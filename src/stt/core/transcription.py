@@ -3,7 +3,7 @@ import logging
 import time
 from pathlib import Path
 
-from src.stt.core.model_manager import ModelManager
+from stt.core.model_manager import ModelManager
 
 
 logger = logging.getLogger(__name__)

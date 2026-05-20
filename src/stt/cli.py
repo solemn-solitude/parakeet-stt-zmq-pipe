@@ -4,10 +4,10 @@ from textwrap import dedent
 
 import click
 
-from src.stt.config import STTConfig
-from src.stt.dataset.generator import DatasetGenerator
-from src.stt.service import STTService
-from src.stt.utils.logging import setup_logging
+from stt.config import STTConfig
+from stt.dataset.generator import DatasetGenerator
+from stt.service import STTService
+from stt.utils.logging import setup_logging
 
 
 @click.group()

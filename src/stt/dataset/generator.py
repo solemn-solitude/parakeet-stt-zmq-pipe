@@ -5,9 +5,9 @@ from textwrap import dedent
 
 import click
 
-from src.stt.connection.sqlite_connection import SQLiteConnection
-from src.stt.core.model_manager import ModelManager
-from src.stt.core.transcription import TranscriptionEngine
+from stt.connection.sqlite_connection import SQLiteConnection
+from stt.core.model_manager import ModelManager
+from stt.core.transcription import TranscriptionEngine
 
 
 logger = logging.getLogger(__name__)

@@ -3,13 +3,13 @@ import logging
 import signal
 from pathlib import Path
 
-from src.stt.config import STTConfig
-from src.stt.core.model_manager import ModelManager
-from src.stt.core.transcription import TranscriptionEngine
-from src.stt.messaging.schemas import TranscriptionResponse
-from src.stt.messaging.zmq_handler import ZMQHandler
-from src.stt.processing.audio import AudioProcessor
-from src.stt.utils.logging import PeriodicFlusher
+from stt.config import STTConfig
+from stt.core.model_manager import ModelManager
+from stt.core.transcription import TranscriptionEngine
+from stt.messaging.schemas import TranscriptionResponse
+from stt.messaging.zmq_handler import ZMQHandler
+from stt.processing.audio import AudioProcessor
+from stt.utils.logging import PeriodicFlusher
 
 
 logger = logging.getLogger(__name__)

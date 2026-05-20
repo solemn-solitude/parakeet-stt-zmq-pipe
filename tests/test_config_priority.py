@@ -2,7 +2,7 @@
 """Test script to verify STT_INPUT_ADDRESS configuration priority."""
 import os
 from pathlib import Path
-from src.stt.config import STTConfig
+from stt.config import STTConfig
 
 
 def test_default():

@@ -1,10 +1,11 @@
 [project]
-name = "parakeet-stt-zmq-pipe"
+name = "stt"
 version = "0.1.0"
 description = "Production-ready STT service using NeMo Parakeet with ZMQ messaging for pipeline integration"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ainet-common",
     "click>=8.3.1",
     "msgpack>=1.1.2",
     "nemo-toolkit[asr]>=2.6.1",
@@ -12,3 +13,16 @@ dependencies = [
     "soundfile>=0.13.1",
     "torch>=2.9.1",
 ]
+
+[project.scripts]
+stt = "stt.cli:cli"
+
+[tool.uv.sources]
+ainet-common = { path = "../common" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stt"]
