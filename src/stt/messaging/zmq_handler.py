@@ -3,6 +3,8 @@ import logging
 
 import zmq
 
+from ainet.errors import safe_bind
+
 from stt.messaging.schemas import AudioRequest, TranscriptionResponse
 from stt.messaging.serialization import deserialize_audio_request, serialize_transcription_response
 
@@ -33,7 +35,7 @@ class ZMQHandler:
         self.context = zmq.Context()
 
         self.input_socket = self.context.socket(zmq.ROUTER)
-        self.input_socket.bind(self.input_address)
+        safe_bind(self.input_socket, self.input_address, "stt")
         logger.info("ROUTER socket bound to %s", self.input_address)
 
         self.output_socket = self.context.socket(zmq.DEALER)

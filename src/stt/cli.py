@@ -1,13 +1,21 @@
 """Command-line interface for the STT service."""
+import sys
 from pathlib import Path
 from textwrap import dedent
 
 import click
 
+from ainet.errors import already_reported, classify_exception, install_thread_excepthook, report
+
 from stt.config import STTConfig
 from stt.dataset.generator import DatasetGenerator
 from stt.service import STTService
 from stt.utils.logging import setup_logging
+
+# Defensive — NeMo / PyTorch may spawn worker threads we don't control.
+# Matches the TTS pattern: catches CUDA OOM in any thread, reports it,
+# forces os._exit(1) so systemd transitions to `failed`.
+install_thread_excepthook("stt")
 
 
 @click.group()
@@ -96,7 +104,20 @@ def start(
         click.echo("\nShutdown requested by user")
     except Exception as e:
         click.echo(f"\nFatal error: {e}", err=True)
-        raise
+        # Only fire the catch-all report if a deeper layer (e.g. safe_bind for
+        # EADDRINUSE) hasn't already classified this with a more accurate kind.
+        # Otherwise the GUI sees both a precise `port_in_use` and a generic
+        # `init_failed` for the same root cause.
+        if not already_reported(e):
+            kind, detail = classify_exception(e)
+            report(
+                service="stt",
+                kind=kind,
+                message=f"STT service failed: {e}",
+                detail=detail,
+                recoverable=True,
+            )
+        sys.exit(1)
 
 
 @cli.command()

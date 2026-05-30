@@ -6,6 +6,8 @@ import time
 
 import nemo.collections.asr as nemo_asr
 
+from ainet.errors import classify_exception, mark_reported, report
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,11 @@ class ModelManager:
         self._lock = threading.RLock()
         self._monitor_thread: threading.Thread | None = None
         self._running = False
+        # Sticky: once load fails, subsequent get_model() calls fail fast
+        # against this same error rather than retrying NeMo's from_pretrained.
+        # Without this every incoming audio request would trigger another OOM
+        # against the same VRAM pressure. A process restart clears it.
+        self._init_error: BaseException | None = None
 
         logger.info(
             "ModelManager initialized: model=%s, timeout=%d minutes",
@@ -49,6 +56,11 @@ class ModelManager:
 
     def get_model(self) -> nemo_asr.models.ASRModel:
         with self._lock:
+            if self._init_error is not None:
+                raise RuntimeError(
+                    f"Model is in a permanently-failed state for this process: "
+                    f"{self._init_error}. Restart the STT service to retry."
+                ) from self._init_error
             if self._model is None:
                 self._load_model()
 
@@ -69,7 +81,24 @@ class ModelManager:
 
         except Exception as e:
             logger.error("Failed to load model %s: %s", self.model_name, e, exc_info=True)
-            raise RuntimeError(f"Model loading failed: {e}") from e
+            # Report at the root cause, before the wrapping below — keeps the
+            # exception type intact for the classifier (the wrapped RuntimeError
+            # would still match via the message-substring path, but the
+            # exc_type field in detail stays correct this way).
+            kind, detail = classify_exception(e)
+            detail["model_name"] = self.model_name
+            report(
+                service="stt",
+                kind=kind,
+                message=f"STT model failed to load: {e}",
+                detail=detail,
+                recoverable=True,
+            )
+            mark_reported(e)
+            self._init_error = e
+            wrapped = RuntimeError(f"Model loading failed: {e}")
+            mark_reported(wrapped)
+            raise wrapped from e
 
     def _deallocate_model(self) -> None:
         with self._lock:

@@ -43,6 +43,7 @@ version = "0.1.0"
 source = { directory = "../common" }
 dependencies = [
     { name = "msgpack" },
+    { name = "numpy" },
     { name = "pyzmq" },
     { name = "tomli-w" },
 ]
@@ -50,9 +51,13 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "msgpack", specifier = ">=1.0" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "pyzmq", specifier = ">=26.0" },
     { name = "tomli-w", specifier = ">=1.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "aiohappyeyeballs"
